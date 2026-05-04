@@ -115,6 +115,12 @@ export const USE_CASES = [
   { id: 'mixed', label: '🔀 Mixed / General' },
 ] as const;
 
+/**
+ * Formats a numeric amount as a standard currency string.
+ * @param amount - The numeric amount to format
+ * @param currency - The currency code (defaults to USD)
+ * @returns Formatted currency string without fraction digits
+ */
 export const formatCurrency = (amount: number, currency = 'USD'): string => {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
