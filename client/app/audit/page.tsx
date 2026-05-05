@@ -35,7 +35,7 @@ function ToolRow({
   entry: ToolEntry;
   index: number;
   total: number;
-  onUpdate: (id: string, field: keyof ToolEntry, value: string | number) => void;
+  onUpdate: (id: string, updates: Partial<ToolEntry>) => void;
   onRemove: (id: string) => void;
 }) {
   const toolMeta = TOOL_LIST.find((t) => t.name === entry.toolName);
@@ -103,12 +103,18 @@ function ToolRow({
             id={`tool-name-${entry.id}`}
             value={entry.toolName}
             onChange={(e) => {
-              const newTool = TOOL_LIST.find((t) => t.name === e.target.value);
-              onUpdate(entry.id, 'toolName', e.target.value);
+              const newToolName = e.target.value as ToolName;
+              const newTool = TOOL_LIST.find((t) => t.name === newToolName);
+              const updates: Partial<ToolEntry> = { toolName: newToolName };
+              
               if (newTool?.plans[0]) {
-                onUpdate(entry.id, 'plan', newTool.plans[0].id);
-                onUpdate(entry.id, 'monthlySpend', newTool.plans[0].monthlyPrice);
+                const defaultPlan = newTool.plans[0];
+                updates.plan = defaultPlan.id;
+                updates.monthlySpend = defaultPlan.billingType === 'per-seat'
+                  ? defaultPlan.monthlyPrice * entry.seats
+                  : defaultPlan.monthlyPrice;
               }
+              onUpdate(entry.id, updates);
             }}
             className="input-base w-full px-3 py-2 text-sm appearance-none cursor-pointer"
           >
@@ -133,11 +139,16 @@ function ToolRow({
             id={`tool-plan-${entry.id}`}
             value={entry.plan}
             onChange={(e) => {
-              const plan = plans.find((p) => p.id === e.target.value);
-              onUpdate(entry.id, 'plan', e.target.value);
+              const newPlanId = e.target.value;
+              const plan = plans.find((p) => p.id === newPlanId);
+              const updates: Partial<ToolEntry> = { plan: newPlanId };
+              
               if (plan && plan.monthlyPrice > 0) {
-                onUpdate(entry.id, 'monthlySpend', plan.monthlyPrice * entry.seats);
+                updates.monthlySpend = plan.billingType === 'per-seat'
+                  ? plan.monthlyPrice * entry.seats
+                  : plan.monthlyPrice;
               }
+              onUpdate(entry.id, updates);
             }}
             className="input-base w-full px-3 py-2 text-sm appearance-none cursor-pointer"
           >
@@ -165,8 +176,9 @@ function ToolRow({
             max={10000}
             value={entry.seats}
             onChange={(e) => {
-              const seats = Math.max(1, parseInt(e.target.value) || 1);
-              onUpdate(entry.id, 'seats', seats);
+              const parsed = parseInt(e.target.value);
+              const seats = isNaN(parsed) ? 1 : Math.min(10000, Math.max(1, parsed));
+              onUpdate(entry.id, { seats });
             }}
             className="input-base w-full px-3 py-2 text-sm"
           />
@@ -195,9 +207,10 @@ function ToolRow({
               min={0}
               step={0.01}
               value={entry.monthlySpend}
-              onChange={(e) =>
-                onUpdate(entry.id, 'monthlySpend', parseFloat(e.target.value) || 0)
-              }
+              onChange={(e) => {
+                const val = parseFloat(e.target.value);
+                onUpdate(entry.id, { monthlySpend: isNaN(val) ? 0 : Math.max(0, val) });
+              }}
               className="input-base w-full pl-7 pr-3 py-2 text-sm"
               aria-describedby={isOverpaying ? `overpay-warning-${entry.id}` : undefined}
             />
@@ -254,11 +267,11 @@ export default function AuditPage() {
   }, [form, hydrated]);
 
   const updateTool = useCallback(
-    (id: string, field: keyof ToolEntry, value: string | number) => {
+    (id: string, updates: Partial<ToolEntry>) => {
       setForm((prev) => ({
         ...prev,
         tools: prev.tools.map((t) =>
-          t.id === id ? { ...t, [field]: value } : t
+          t.id === id ? { ...t, ...updates } : t
         ),
       }));
     },
@@ -285,6 +298,12 @@ export default function AuditPage() {
     e.preventDefault();
     setError(null);
 
+    const formData = new FormData(e.target as HTMLFormElement);
+    if (formData.get('company_name_confirm')) {
+      // Honeypot triggered, silently abort to deter bots
+      return;
+    }
+
     if (form.tools.length === 0) {
       setError('Add at least one AI tool to audit.');
       return;
@@ -293,11 +312,12 @@ export default function AuditPage() {
     setSubmitting(true);
     try {
       const payload = {
-        tools: form.tools.map((t) => {
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const { id: _id, ...rest } = t;
-          return rest;
-        }),
+        tools: form.tools.map((t) => ({
+          toolName: t.toolName,
+          plan: t.plan,
+          seats: t.seats,
+          monthlySpend: t.monthlySpend,
+        })),
         teamSize: form.teamSize,
         primaryUseCase: form.primaryUseCase,
       };
@@ -410,12 +430,13 @@ export default function AuditPage() {
                   max={100000}
                   required
                   value={form.teamSize}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    const parsed = parseInt(e.target.value);
                     setForm((prev) => ({
                       ...prev,
-                      teamSize: Math.max(1, parseInt(e.target.value) || 1),
-                    }))
-                  }
+                      teamSize: isNaN(parsed) ? 1 : Math.min(100000, Math.max(1, parsed)),
+                    }));
+                  }}
                   className="input-base w-full px-3 py-2 text-sm"
                 />
               </div>
