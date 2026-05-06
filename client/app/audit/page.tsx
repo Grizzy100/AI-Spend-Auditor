@@ -233,12 +233,14 @@ export default function AuditPage() {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored) as AuditFormState;
-        if (parsed.tools?.length) setForm(parsed);
+        if (parsed.tools?.length) {
+          setTimeout(() => setForm(parsed), 0);
+        }
       }
     } catch {
       // ignore corrupt storage
     }
-    setHydrated(true);
+    setTimeout(() => setHydrated(true), 0);
   }, []);
 
   // Persist form state on change
@@ -291,7 +293,11 @@ export default function AuditPage() {
     setSubmitting(true);
     try {
       const payload = {
-        tools: form.tools.map(({ id: _id, ...rest }) => rest),
+        tools: form.tools.map((t) => {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { id: _id, ...rest } = t;
+          return rest;
+        }),
         teamSize: form.teamSize,
         primaryUseCase: form.primaryUseCase,
       };

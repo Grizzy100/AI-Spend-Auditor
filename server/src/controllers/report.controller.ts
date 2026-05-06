@@ -7,7 +7,7 @@ export const getReport = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { shareId } = req.params;
+    const shareId = req.params.shareId as string;
 
     const report = await prisma.auditReport.findUnique({
       where: { shareId },

@@ -42,7 +42,7 @@ function ScoreGauge({ score }: { score: number }) {
 
 function RecommendationCard({ rec, rank }: { rec: ToolRecommendation; rank: number }) {
   const isOptimized = rec.type === 'optimized';
-  const isOverlap = rec.type === 'overlap-reduction';
+
   const isSavings = rec.monthlySavings > 0;
 
   const typeLabel: Record<string, string> = {
