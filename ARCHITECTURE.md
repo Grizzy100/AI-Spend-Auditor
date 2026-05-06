@@ -1,114 +1,137 @@
-# Architecture Decision Record
-**AI Spend Auditor — Credex**
-_Last updated: May 2026_
+# ARCHITECTURE.md
+**AI Spend Auditor — System Design**
 
 ---
 
-## 1. Frontend: Next.js 15 (App Router) + TypeScript
+## System Diagram
 
-**Chosen:** Next.js 15 with App Router  
-**Alternatives considered:** Vite + React SPA, Remix, SvelteKit
+```mermaid
+graph TD
+    User[👤 User / Browser] -->|HTTPS| Vercel[Vercel CDN<br/>Next.js 15 App Router]
+    
+    Vercel -->|Server Component fetch| Express[Express.js API<br/>Render.com · Port 3001]
+    Vercel -->|Client fetch| Express
+    
+    Express -->|Prisma v7 / PrismaPg| Neon[(Neon PostgreSQL<br/>ap-southeast-1)]
+    Express -->|REST| Gemini[Google Gemini API<br/>1.5 Flash · Summary only]
+    Express -->|REST| Resend[Resend<br/>Transactional Email]
+    
+    subgraph "Express Server"
+        Router[Rate Limiter + Router]
+        AuditController[Audit Controller]
+        AuditEngine[Audit Engine<br/>Deterministic · No AI]
+        GeminiService[Gemini Service<br/>Summary paragraph]
+        EmailService[Email Service]
+        LeadController[Lead Controller]
+        Router --> AuditController
+        Router --> LeadController
+        AuditController --> AuditEngine
+        AuditController --> GeminiService
+        LeadController --> EmailService
+    end
 
-### Justification
-
-| Requirement | Why Next.js wins |
-|---|---|
-| Server-side rendering for reports | App Router Server Components fetch report data before HTML arrives — enables real SEO and fast first paint |
-| Dynamic OG images per report | `next/og` edge runtime makes per-shareId Open Graph images trivial |
-| Lighthouse Performance ≥ 85 | Streaming, React Server Components, and automatic code splitting |
-| TypeScript | First-class support, no extra config |
-| Vercel deployment | Zero-config, edge network, automatic HTTPS |
-
-The landing page is a **zero-JS Server Component** — no hydration cost, ideal for SEO and performance.  
-The report page uses **mixed rendering**: server fetch + client interactivity (copy link, email capture).  
-The audit form is **client-only** — form state lives in localStorage, no server round-trip until submit.
-
----
-
-## 2. Backend: Express.js + TypeScript on Render
-
-**Chosen:** Express.js  
-**Alternatives considered:** Next.js API routes
-
-### Justification
-
-| Factor | Decision |
-|---|---|
-| Separation of concerns | Audit engine + DB logic is isolated. Can be versioned and tested independently |
-| Prisma v7 + driver adapter | Requires Node.js runtime, not Edge. Express on Render is the clean fit |
-| Rate limiting | `express-rate-limit` gives per-IP control without Vercel middleware complexity |
-| Testing | Vitest runs pure Node — no Next.js bundler needed to test the audit engine |
-
-> **Note:** "DO NOT overengineer" — the Express server is ~6 files, not a microservice mesh. It is the simplest solution that correctly separates DB/AI logic from the UI layer.
-
----
-
-## 3. Database: Neon PostgreSQL via Prisma v7
-
-**Chosen:** Neon (serverless Postgres) + Prisma v7  
-**Alternatives considered:** PlanetScale, Supabase, SQLite
-
-Neon provides:
-- Serverless connection pooling (critical for Render's free tier cold starts)
-- Standard PostgreSQL — no vendor lock-in
-- Free tier covers MVP usage volume
-
-Prisma v7 with `PrismaPg` adapter provides type-safe queries with the new Rust-free client.
-
----
-
-## 4. TypeScript
-
-Used throughout — both client and server. No plain JavaScript files in `/src`.
-
-Strict mode enabled. `zod` validates all API boundaries.
-
----
-
-## 5. Styling: Tailwind CSS (v4)
-
-No UI templates, no component libraries beyond primitives. Every layout is hand-written.  
-shadcn/ui is initialized but used only for its CSS variable scaffolding — not for pre-built page layouts.
-
----
-
-## 6. AI: Google Gemini 1.5 Flash
-
-Used **only** for the 80-100 word executive summary.  
-**Not used** for audit calculations — all financial logic is deterministic.  
-Failures are caught and replaced with a deterministic fallback summary.
-
----
-
-## 7. Email: Resend
-
-Transactional email after lead capture. Non-blocking — lead saves to DB even if email fails.
-
----
-
-## Deployment Architecture
-
-```
-User Browser
-    │
-    ├── Vercel (Next.js)                    ← Static assets, SSR, OG images
-    │       │
-    │       └── fetch() calls ──────────→  Render (Express API, port 3001)
-    │                                              │
-    │                                    Neon PostgreSQL (AP-Southeast-1)
-    │                                    Google Gemini API
-    │                                    Resend
-    │
-    └── localhost:3000 (dev)
-            └── → localhost:3001 (dev API)
+    subgraph "Next.js Client"
+        Landing[Landing Page<br/>Server Component · Zero JS]
+        AuditForm[Audit Form<br/>Client Component · localStorage]
+        ReportPage[Report Page<br/>SSR + Client interactivity]
+        OGImage[OG Image API<br/>Edge Runtime]
+    end
 ```
 
-## Security
+---
 
-- All secrets in environment variables — never committed
-- `.env` and `.env.local` in `.gitignore`
-- Rate limiting: 10 audit requests/minute per IP
-- Honeypot field on both audit form and email capture (bot detection)
-- Prisma parameterized queries (no raw SQL injection surface)
-- Helmet.js HTTP security headers
-- CORS restricted to known frontend origins
+## Data Flow: Form Input → Audit Result
+
+```
+1. User fills form (8 tools × {plan, seats, monthlySpend}) + teamSize + useCase
+      ↓ localStorage.setItem() on every keystroke (persistence)
+      
+2. Submit → POST /api/audit
+   Payload: { tools: [...], teamSize: N, primaryUseCase: "coding" }
+      ↓ Zod validation (strict schema)
+      
+3. AuditEngine.run(payload) — pure deterministic function:
+   For each tool:
+     a. Look up current plan price from pricingData map
+     b. Run all applicable rules (9 rules):
+        - planDowngradeRule (team plan for ≤2 users)
+        - proPlusSeatRule (Pro+ vs Pro right-sizing)
+        - cursorCopilotOverlapRule
+        - cursorWindsurfOverlapRule
+        - claudeChatGptTeamOverlapRule
+        - windsurfCopilotOverlapRule
+        - overpayDetectionRule (>15% above market)
+        - benchmarkRule (compare to industry avg)
+        - apiVsSubscriptionRule
+     c. Return recommendation: { savings, reason, type, confidence }
+   
+   Aggregate:
+     - totalMonthlySavings = sum of all tool savings
+     - optimizationScore = 100 - (wastePercentage * 0.8) + bonuses
+     - benchmarkPercentile = position vs industry avg table
+     - biggestInefficiency = top recommendation by savings
+      ↓
+
+4. GeminiService.generateSummary(auditResult):
+   - Build prompt with exact numbers from step 3
+   - Call gemini-1.5-flash
+   - On failure → use deterministic fallback template
+      ↓
+
+5. prisma.auditReport.create({ ...auditResult, shareId: nanoid(10) })
+      ↓
+
+6. Return { shareId } to client
+      ↓
+
+7. Client: router.push(`/report/${shareId}`)
+      ↓
+
+8. Report page: server-side fetch of /api/report/:shareId
+   - Renders full results (recommendations, savings, benchmark)
+   - Generates metadata for OG tags
+   - Client component handles: copy link, email capture form
+      ↓
+
+9. User submits email → POST /api/lead
+   - Honeypot check (bot rejection)
+   - prisma.lead.create(...)
+   - Resend: send confirmation email
+```
+
+---
+
+## Why This Stack
+
+| Decision | Choice | Reason |
+|----------|--------|--------|
+| Frontend | Next.js 15 App Router | SSR for report SEO + edge OG images + zero-JS landing for Lighthouse |
+| Backend | Express.js | Clean Node.js env for Vitest, independent versioning, Prisma v7 driver adapter |
+| Database | Neon PostgreSQL | Serverless connection pooling, standard SQL, free tier sufficient |
+| ORM | Prisma v7 | Type-safe queries, schema-as-code, Neon adapter support |
+| Styling | Tailwind CSS v4 | No templates, full design control, tree-shaken in production |
+| Validation | Zod | Runtime + compile-time safety on all API boundaries |
+| Email | Resend | Modern API, reliable delivery, free tier covers MVP volume |
+| AI (summary only) | Gemini 1.5 Flash | Fast, cheap (~$0.0001/summary), sufficient for constrained summarization |
+
+---
+
+## What Changes at 10,000 Audits/Day
+
+**Current architecture handles ~50-100 audits/day.** At 10k/day:
+
+| Bottleneck | Current | At Scale |
+|---|---|---|
+| Database connections | Single pool, Neon free | Neon Pro with connection pooler (PgBouncer built-in) |
+| Gemini API | Direct call per audit | Queue (BullMQ + Redis) — batch or async summary generation |
+| Rate limiting | In-memory (single process) | Redis-backed rate limiter (ioredis) — survives restarts |
+| Report fetching | Direct DB query | Redis cache with 1hr TTL on `report:{shareId}` |
+| Express server | Single instance on Render | Render autoscaling or migrate to serverless (AWS Lambda + API Gateway) |
+| OG images | Generated per request | Cache in Vercel CDN with `s-maxage` headers |
+| Audit engine | Synchronous, in-process | Extract as standalone service — stateless, horizontally scalable |
+| Lead emails | Synchronous with Resend | Async queue — email failures don't block the user response |
+
+**At 10k/day, the architecture shifts from monolith to:**
+- API gateway → audit worker pool (stateless) → results queue → DB writer
+- Summary generation runs async, polled by client
+- All external calls (Gemini, Resend) behind retryable queues with dead-letter handling
