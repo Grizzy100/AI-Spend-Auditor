@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+.env.local
+.env.*.local
+.next/
+*.log
+.DS_Store
+coverage/
+server/prisma/migrations/
+server/src/generated/
+*.tsbuildinfo

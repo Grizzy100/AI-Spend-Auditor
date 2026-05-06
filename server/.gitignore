@@ -1,0 +1,25 @@
+# Secrets — NEVER commit these
+.env
+.env.local
+.env.*.local
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Generated Prisma client
+src/generated/
+
+# Logs
+*.log
+logs/
+
+# Coverage
+coverage/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Runtime
+node_modules/

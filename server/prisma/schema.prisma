@@ -1,0 +1,52 @@
+// Prisma v7 schema — url must NOT be in datasource block; configure in prisma.config.ts
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model AuditReport {
+  id                  String   @id @default(cuid())
+  shareId             String   @unique
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  tools               Json
+  teamSize            Int
+  primaryUseCase      String
+
+  totalMonthlySpend   Float
+  totalMonthlySavings Float
+  totalAnnualSavings  Float
+  wastePercentage     Float
+
+  optimizationScore   Int
+  benchmarkPercentile Int
+
+  biggestInefficiency String
+  aiSummary           String   @db.Text
+  recommendations     Json
+  benchmarkData       Json
+
+  leads               Lead[]
+
+  @@index([shareId])
+  @@index([createdAt])
+}
+
+model Lead {
+  id            String      @id @default(cuid())
+  email         String
+  companyName   String?
+  role          String?
+  createdAt     DateTime    @default(now())
+  auditReportId String
+  auditReport   AuditReport @relation(fields: [auditReportId], references: [id], onDelete: Cascade)
+
+  @@index([email])
+  @@index([auditReportId])
+}
