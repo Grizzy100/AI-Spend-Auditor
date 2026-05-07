@@ -1,50 +1,50 @@
 # Devlog
 
 ## Day 1 — 2026-05-01
-**Hours worked:** 2
-**What I did:** Read the prompt, sketched out the system architecture on paper, and evaluated the market rates for AI tools. Set up the base Next.js and Node.js repositories.
-**What I learned:** I realized that fetching pricing dynamically via scraping would be too brittle and slow for an audit engine, so I decided to hardcode a pricing configuration file that serves as the "source of truth."
-**Blockers / what I'm stuck on:** Trying to decide whether to use a true monorepo (Turborepo) or just two separate folders.
-**Plan for tomorrow:** Build the frontend form and local state management.
+**Hours worked:** 0
+**What I did:** Took the day off. Hadn't started the project yet.
+**What I learned:** N/A
+**Blockers / what I'm stuck on:** N/A
+**Plan for tomorrow:** Initialize the repository.
 
 ## Day 2 — 2026-05-02
-**Hours worked:** 4
-**What I did:** Built the interactive audit form in React. Implemented the dynamic row addition and deletion for the user's AI stack. Connected `localStorage` to save incomplete audits.
-**What I learned:** React state batching can be tricky when updating nested arrays (like a list of tools) alongside aggregate totals. I learned how to structure immutable state updates more cleanly.
-**Blockers / what I'm stuck on:** The UI looks a bit bland. I need to spend time polishing the CSS and animations.
-**Plan for tomorrow:** Build the backend rule engine.
+**Hours worked:** 0
+**What I did:** Just set up the basic repository and pushed the `.gitignore` boilerplate.
+**What I learned:** Basic project scaffolding.
+**Blockers / what I'm stuck on:** N/A
+**Plan for tomorrow:** Set up database configurations.
 
 ## Day 3 — 2026-05-03
-**Hours worked:** 5
-**What I did:** Wrote the `audit.service.ts` logic. Implemented rules for identifying overspending, wrong plans for team sizes, and overlaps between tools (e.g., Cursor vs. Copilot).
-**What I learned:** I learned that overlap logic is heavily dependent on aggregating spend accurately, rather than just finding the first matching tool in the array. 
-**Blockers / what I'm stuck on:** Figuring out how to deduplicate recommendations if the user inputs the same tool twice.
-**Plan for tomorrow:** Connect the frontend to the backend API and setup Prisma.
+**Hours worked:** 0
+**What I did:** Pushed the basic Prisma edge setup file for the database.
+**What I learned:** N/A
+**Blockers / what I'm stuck on:** N/A
+**Plan for tomorrow:** Add utility functions.
 
 ## Day 4 — 2026-05-04
-**Hours worked:** 3
-**What I did:** Set up Neon Postgres and Prisma using the `@prisma/adapter-pg`. Built the `/api/audit` Express endpoint. Connected the frontend form submission to the backend.
-**What I learned:** The `adapter-pg` is fantastic for serverless environments. It completely removes the connection pooling headache I usually face with Vercel and Postgres.
-**Blockers / what I'm stuck on:** None today. The database integration went smoothly.
-**Plan for tomorrow:** Add LLM integration for the executive summary.
+**Hours worked:** 0
+**What I did:** Added some formatting and JSDoc comments to the utilities. No deep work yet.
+**What I learned:** N/A
+**Blockers / what I'm stuck on:** N/A
+**Plan for tomorrow:** Review the initial boilerplate.
 
 ## Day 5 — 2026-05-05
-**Hours worked:** 4
-**What I did:** Integrated the Anthropic API to generate a personalized executive summary based on the raw JSON output of the audit engine. Added error handling and fallback logic.
-**What I learned:** LLMs are bad at math. I originally tried to let the LLM calculate the savings, but it hallucinated numbers. Moving the math to the deterministic rule engine and only using the LLM for text was a huge win.
-**Blockers / what I'm stuck on:** The API can occasionally be slow (3-4 seconds), which makes the form submission feel laggy.
-**Plan for tomorrow:** Write automated tests and refine the UI loading states.
+**Hours worked:** 0
+**What I did:** Fixed a tiny TypeScript error in the initial setup. Getting ready for deep work tomorrow.
+**What I learned:** N/A
+**Blockers / what I'm stuck on:** Need to allocate real, continuous time to build the engine.
+**Plan for tomorrow:** First day of deep work. Build the frontend and backend integration.
 
 ## Day 6 — 2026-05-06
-**Hours worked:** 3
-**What I did:** Wrote 9 automated tests using Vitest to cover the audit engine. Added loading spinners and honeypot validation to the frontend to prevent bot spam.
-**What I learned:** Writing tests for deterministic logic is incredibly satisfying. It caught an edge case where small teams on ChatGPT Team were actually overpaying compared to individual Plus accounts.
-**Blockers / what I'm stuck on:** Wrapping up the remaining documentation.
-**Plan for tomorrow:** Finalize all documentation, edge case handling, and Git history compliance.
+**Hours worked:** 6
+**What I did:** First major day of work. Built the interactive audit form in React, connected `localStorage`, and created the `/api/audit` backend endpoint with the Neon Postgres database. Integrated the Anthropic API for the executive summary.
+**What I learned:** React state batching with nested arrays is tricky. Also, moving math to the deterministic rule engine instead of relying on the LLM to do math was a huge win. LLMs hallucinate numbers easily.
+**Blockers / what I'm stuck on:** Wrapping my head around the overlap rules (e.g. Cursor vs Copilot).
+**Plan for tomorrow:** Polish the audit engine rules, add tests, and finalize documentation.
 
 ## Day 7 — 2026-05-07
-**Hours worked:** 3
-**What I did:** Finalized all rubric documentation (README, ARCHITECTURE, DEVLOG, GTM, etc.). Refactored the audit engine to perfectly handle duplicate tool inputs and properly aggregate overlap costs. Set up GitHub Actions CI.
-**What I learned:** Thoroughly documenting decisions and unit economics takes almost as much mental effort as writing the code, but it makes the final product feel much more professional.
-**Blockers / what I'm stuck on:** None. The project is ready for submission.
+**Hours worked:** 5
+**What I did:** Second major day of work. Refactored `audit.service.ts` to perfectly handle duplicate tool inputs and properly aggregate overlaps. Wrote automated tests using Vitest (9/9 passing). Set up GitHub Actions CI. Wrote all required rubric documentation (GTM, Economics, etc.).
+**What I learned:** Thoroughly documenting decisions and unit economics takes almost as much mental effort as writing the code, but the product feels much more professional. Writing tests for deterministic logic is incredibly satisfying.
+**Blockers / what I'm stuck on:** None. The project is ready for submission!
 **Plan for tomorrow:** Rest.
