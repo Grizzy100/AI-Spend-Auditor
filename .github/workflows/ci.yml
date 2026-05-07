@@ -18,10 +18,10 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: '20'
 
       - name: Install dependencies
-        run: cd server && npm install
+        run: cd server && npm install --legacy-peer-deps
 
       - name: Run Tests
         run: cd server && npx vitest run src/tests/audit.test.ts
@@ -37,12 +37,12 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: '20'
 
       - name: Install dependencies
         run: |
-          cd client && npm install
-          cd ../server && npm install
+          cd client && npm install --legacy-peer-deps
+          cd ../server && npm install --legacy-peer-deps
 
       - name: Lint Client
         run: cd client && npm run lint || echo "Linting client passed/ignored"
