@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { TOOL_LIST, USE_CASES, formatCurrency } from '@/lib/pricing';
 import { api } from '@/lib/api';
-import type { ToolEntry, AuditFormState, UseCase } from '@/types';
+import type { ToolEntry, AuditFormState, UseCase, ToolName } from '@/types';
 
 const STORAGE_KEY = 'ai-audit-form-v1';
 
