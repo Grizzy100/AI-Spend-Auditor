@@ -85,7 +85,8 @@ const calcMarketRate = (tool: ToolInput): number => {
   const planData = getPlanData(tool.toolName as ToolName, tool.plan);
   if (!planData) return tool.monthlySpend; // unknown plan — trust user
   if (planData.billingType === 'usage') return tool.monthlySpend; // API usage is self-reported
-  if (planData.billingType === 'per-seat') return round2(planData.monthlyPrice * tool.seats);
+  const seats = Math.max(1, tool.seats); // Sanitize seats
+  if (planData.billingType === 'per-seat') return round2(planData.monthlyPrice * seats);
   return planData.monthlyPrice; // individual
 };
 
@@ -295,23 +296,26 @@ const ruleOverpaying = (tool: ToolInput): ToolRecommendation | null => {
 const ruleOverlapCursorCopilot = (
   tools: ToolInput[]
 ): ToolRecommendation | null => {
-  const cursor = tools.find((t) => t.toolName === 'cursor');
-  const copilot = tools.find((t) => t.toolName === 'copilot');
-  if (!cursor || !copilot) return null;
-  if (cursor.plan === 'hobby' && copilot.plan === 'free') return null;
+  const cursors = tools.filter((t) => t.toolName === 'cursor');
+  const copilots = tools.filter((t) => t.toolName === 'copilot');
+  if (cursors.length === 0 || copilots.length === 0) return null;
+  if (cursors.every(c => c.plan === 'hobby') && copilots.every(c => c.plan === 'free')) return null;
 
   // Recommend keeping whichever is cheaper / more appropriate
-  const cursorCost = cursor.monthlySpend;
-  const copilotCost = copilot.monthlySpend;
+  const cursorCost = cursors.reduce((sum, t) => sum + t.monthlySpend, 0);
+  const copilotCost = copilots.reduce((sum, t) => sum + t.monthlySpend, 0);
   const keepTool = cursorCost <= copilotCost ? 'Cursor' : 'GitHub Copilot';
   const dropTool = keepTool === 'Cursor' ? 'GitHub Copilot' : 'Cursor';
   const savings = round2(Math.min(cursorCost, copilotCost));
+  
+  const dropEntries = dropTool === 'Cursor' ? cursors : copilots;
+  const totalSeatsDrop = dropEntries.reduce((sum, t) => sum + Math.max(1, t.seats), 0);
 
   return {
-    toolName: copilotCost > cursorCost ? 'copilot' : 'cursor',
+    toolName: dropTool === 'Cursor' ? 'cursor' : 'copilot',
     displayName: dropTool,
     currentPlan: 'Active subscription',
-    currentSeats: copilotCost > cursorCost ? copilot.seats : cursor.seats,
+    currentSeats: totalSeatsDrop,
     currentMonthlySpend: savings,
     calculatedMarketRate: savings,
     recommendedPlan: 'Cancel — consolidate with ' + keepTool,
@@ -331,20 +335,26 @@ const ruleOverlapCursorCopilot = (
 const ruleOverlapCursorWindsurf = (
   tools: ToolInput[]
 ): ToolRecommendation | null => {
-  const cursor = tools.find((t) => t.toolName === 'cursor');
-  const windsurf = tools.find((t) => t.toolName === 'windsurf');
-  if (!cursor || !windsurf) return null;
-  if (cursor.plan === 'hobby' && windsurf.plan === 'free') return null;
+  const cursors = tools.filter((t) => t.toolName === 'cursor');
+  const windsurfs = tools.filter((t) => t.toolName === 'windsurf');
+  if (cursors.length === 0 || windsurfs.length === 0) return null;
+  if (cursors.every(c => c.plan === 'hobby') && windsurfs.every(w => w.plan === 'free')) return null;
 
-  const savings = round2(Math.min(cursor.monthlySpend, windsurf.monthlySpend));
-  const drop = cursor.monthlySpend <= windsurf.monthlySpend ? 'Windsurf' : 'Cursor';
+  const cursorSpend = cursors.reduce((sum, t) => sum + t.monthlySpend, 0);
+  const windsurfSpend = windsurfs.reduce((sum, t) => sum + t.monthlySpend, 0);
+
+  const savings = round2(Math.min(cursorSpend, windsurfSpend));
+  const drop = cursorSpend <= windsurfSpend ? 'Windsurf' : 'Cursor';
   const keep = drop === 'Cursor' ? 'Windsurf' : 'Cursor';
+  
+  const dropEntries = drop === 'Cursor' ? cursors : windsurfs;
+  const totalSeatsDrop = dropEntries.reduce((sum, t) => sum + Math.max(1, t.seats), 0);
 
   return {
     toolName: drop.toLowerCase() as ToolName,
     displayName: drop,
     currentPlan: 'Active subscription',
-    currentSeats: 1,
+    currentSeats: totalSeatsDrop,
     currentMonthlySpend: savings,
     calculatedMarketRate: savings,
     recommendedPlan: `Cancel — consolidate with ${keep}`,
@@ -364,23 +374,29 @@ const ruleOverlapCursorWindsurf = (
 const ruleOverlapClaudeChatGPT = (
   tools: ToolInput[]
 ): ToolRecommendation | null => {
-  const claude = tools.find(
+  const claudes = tools.filter(
     (t) => t.toolName === 'claude' && ['team-standard', 'team-premium'].includes(t.plan)
   );
-  const chatgpt = tools.find(
+  const chatgpts = tools.filter(
     (t) => t.toolName === 'chatgpt' && t.plan === 'team'
   );
-  if (!claude || !chatgpt) return null;
+  if (claudes.length === 0 || chatgpts.length === 0) return null;
 
-  const savings = round2(Math.min(claude.monthlySpend, chatgpt.monthlySpend));
-  const drop = claude.monthlySpend <= chatgpt.monthlySpend ? 'Claude' : 'ChatGPT';
+  const claudeSpend = claudes.reduce((sum, t) => sum + t.monthlySpend, 0);
+  const chatgptSpend = chatgpts.reduce((sum, t) => sum + t.monthlySpend, 0);
+
+  const savings = round2(Math.min(claudeSpend, chatgptSpend));
+  const drop = claudeSpend <= chatgptSpend ? 'Claude' : 'ChatGPT';
   const keep = drop === 'Claude' ? 'ChatGPT' : 'Claude';
+  
+  const dropEntries = drop === 'Claude' ? claudes : chatgpts;
+  const totalSeatsDrop = dropEntries.reduce((sum, t) => sum + Math.max(1, t.seats), 0);
 
   return {
     toolName: drop.toLowerCase() as ToolName,
     displayName: drop,
     currentPlan: 'Team',
-    currentSeats: drop === 'Claude' ? claude.seats : chatgpt.seats,
+    currentSeats: totalSeatsDrop,
     currentMonthlySpend: savings,
     calculatedMarketRate: savings,
     recommendedPlan: `Consolidate with ${keep} Team`,
@@ -399,19 +415,25 @@ const ruleOverlapClaudeChatGPT = (
 const ruleOverlapWindsurfCopilot = (
   tools: ToolInput[]
 ): ToolRecommendation | null => {
-  const windsurf = tools.find((t) => t.toolName === 'windsurf' && t.plan !== 'free');
-  const copilot = tools.find((t) => t.toolName === 'copilot' && t.plan !== 'free');
-  if (!windsurf || !copilot) return null;
+  const windsurfs = tools.filter((t) => t.toolName === 'windsurf' && t.plan !== 'free');
+  const copilots = tools.filter((t) => t.toolName === 'copilot' && t.plan !== 'free');
+  if (windsurfs.length === 0 || copilots.length === 0) return null;
 
-  const savings = round2(Math.min(windsurf.monthlySpend, copilot.monthlySpend));
-  const drop = windsurf.monthlySpend <= copilot.monthlySpend ? 'Windsurf' : 'GitHub Copilot';
+  const windsurfSpend = windsurfs.reduce((sum, t) => sum + t.monthlySpend, 0);
+  const copilotSpend = copilots.reduce((sum, t) => sum + t.monthlySpend, 0);
+
+  const savings = round2(Math.min(windsurfSpend, copilotSpend));
+  const drop = windsurfSpend <= copilotSpend ? 'Windsurf' : 'GitHub Copilot';
   const keep = drop === 'Windsurf' ? 'GitHub Copilot' : 'Windsurf';
+  
+  const dropEntries = drop === 'Windsurf' ? windsurfs : copilots;
+  const totalSeatsDrop = dropEntries.reduce((sum, t) => sum + Math.max(1, t.seats), 0);
 
   return {
     toolName: drop === 'Windsurf' ? 'windsurf' : 'copilot',
     displayName: drop,
     currentPlan: 'Active subscription',
-    currentSeats: drop === 'Windsurf' ? windsurf.seats : copilot.seats,
+    currentSeats: totalSeatsDrop,
     currentMonthlySpend: savings,
     calculatedMarketRate: savings,
     recommendedPlan: `Cancel — use ${keep} only`,
@@ -443,10 +465,22 @@ export const runAudit = (input: AuditInput): AuditResult => {
   const { tools, teamSize, primaryUseCase } = input;
   const shareId = generateShareId();
 
-  // 1. Collect per-tool recommendations
+  // 1. Merge duplicate tools to handle multiple inputs gracefully
+  const mergedTools: ToolInput[] = [];
+  for (const t of tools) {
+    const existing = mergedTools.find((m) => m.toolName === t.toolName && m.plan === t.plan);
+    if (existing) {
+      existing.seats += Math.max(1, t.seats);
+      existing.monthlySpend += Math.max(0, t.monthlySpend);
+    } else {
+      mergedTools.push({ ...t, seats: Math.max(1, t.seats), monthlySpend: Math.max(0, t.monthlySpend) });
+    }
+  }
+
+  // 2. Collect per-tool recommendations
   const perToolRecs: ToolRecommendation[] = [];
 
-  for (const tool of tools) {
+  for (const tool of mergedTools) {
     // Check plan-level optimization first
     const planRec = ruleTeamPlanSmallSeat(tool);
     if (planRec) {
@@ -458,18 +492,18 @@ export const runAudit = (input: AuditInput): AuditResult => {
     if (overRec) perToolRecs.push(overRec);
   }
 
-  // 2. Overlap / redundancy rules
+  // 3. Overlap / redundancy rules
   const overlapRecs: ToolRecommendation[] = [];
-  const cursorCopilot = ruleOverlapCursorCopilot(tools);
+  const cursorCopilot = ruleOverlapCursorCopilot(mergedTools);
   if (cursorCopilot) overlapRecs.push(cursorCopilot);
 
-  const cursorWindsurf = ruleOverlapCursorWindsurf(tools);
+  const cursorWindsurf = ruleOverlapCursorWindsurf(mergedTools);
   if (cursorWindsurf) overlapRecs.push(cursorWindsurf);
 
-  const claudeChatGPT = ruleOverlapClaudeChatGPT(tools);
+  const claudeChatGPT = ruleOverlapClaudeChatGPT(mergedTools);
   if (claudeChatGPT) overlapRecs.push(claudeChatGPT);
 
-  const windsurfCopilot = ruleOverlapWindsurfCopilot(tools);
+  const windsurfCopilot = ruleOverlapWindsurfCopilot(mergedTools);
   // Only add windsurf/copilot overlap if cursor overlap not already flagged
   if (windsurfCopilot && !cursorWindsurf && !cursorCopilot) {
     overlapRecs.push(windsurfCopilot);
@@ -478,17 +512,28 @@ export const runAudit = (input: AuditInput): AuditResult => {
   const allRecs = [...overlapRecs, ...perToolRecs];
   const redundancyCount = overlapRecs.length;
 
-  // 3. Deduplicate recs (same toolName shouldn't appear twice)
+  // 4. Deduplicate recs (same toolName+plan shouldn't appear twice)
   const seen = new Set<string>();
   const recommendations = allRecs.filter((r) => {
-    if (seen.has(r.toolName)) return false;
-    seen.add(r.toolName);
+    // We deduplicate by toolName + currentPlan. Overlap rules usually use "Active subscription" or "Team" as currentPlan
+    const key = `${r.toolName}_${r.currentPlan}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
     return true;
   });
 
   // For tools with no issues, add "optimized" entries
-  for (const tool of tools) {
-    if (!recommendations.find((r) => r.toolName === tool.toolName)) {
+  for (const tool of mergedTools) {
+    const planData = getPlanData(tool.toolName as ToolName, tool.plan);
+    const expectedCurrentPlan = planData?.label ?? tool.plan;
+    
+    // Check if this tool is already covered by a recommendation
+    const hasRec = recommendations.find((r) => 
+      r.toolName === tool.toolName && 
+      (r.currentPlan === expectedCurrentPlan || r.type === 'overlap-reduction')
+    );
+    
+    if (!hasRec) {
       const planData = getPlanData(tool.toolName as ToolName, tool.plan);
       recommendations.push({
         toolName: tool.toolName,
