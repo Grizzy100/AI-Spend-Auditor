@@ -1,93 +1,71 @@
 # AI Spend Auditor
 
-> Find hidden waste in your AI subscriptions in 2 minutes. Built for startup founders and engineering managers who pay for AI tools but have no benchmark for what's reasonable.
+AI Spend Auditor is a lightweight, edge-compatible web application designed for startup founders, engineering managers, and finance teams to identify overlapping and underutilized AI tool subscriptions. By analyzing a team's current AI stack, it provides actionable recommendations to consolidate tools, downgrade unused tiers, and negotiate better pricing based on official market rates.
 
-A free audit tool by [Credex](https://credex.rocks) that analyzes your AI tool stack (Cursor, ChatGPT, Claude, Copilot, Gemini, etc.), identifies plan mismatches and redundant overlaps, and produces a shareable report showing exactly how much you can save — with specific, defensible recommendations backed by real pricing data.
+## Demo & Deployment
 
----
+- **Live Deployment:** [Deployed URL Placeholder - Replace Before Submission]
+- **Walkthrough Video:** [Loom / YouTube Link Placeholder - Replace Before Submission]
 
-## Screenshots
+*(Note: Replace the above links before submitting the assignment)*
 
-> _Add 3 screenshots here before submission — or a 30-second Loom recording link_
-> 
-> Suggested: Landing page hero · Audit form with tools entered · Report page with savings breakdown
-
----
-
-## Live URL
-
-> _Add Vercel/Render deployed URL here_
-
----
+### Screenshots
+*(Add 3+ screenshots of the audit form, results page, and recommendations here)*
+- `![Audit Form](./docs/screenshot1.png)`
+- `![Results Page](./docs/screenshot2.png)`
+- `![Recommendations](./docs/screenshot3.png)`
 
 ## Quick Start
 
 ### Prerequisites
-- Node.js ≥ 20
-- npm ≥ 9
-- A [Neon](https://neon.tech) PostgreSQL database
-- A [Google Gemini](https://aistudio.google.com) API key
-- A [Resend](https://resend.com) account for email
+- Node.js (v18+)
+- PostgreSQL database (e.g., Neon or local pg instance)
 
-### 1. Clone and install
+### Install & Run Locally
 
-```bash
-git clone https://github.com/Grizzy100/AI-Spend-Auditor.git
-cd AI-Spend-Auditor
-```
+1. **Clone the repository and install dependencies:**
+   ```bash
+   git clone <your-repo-url>
+   cd ai-spend-auditor
+   npm install
+   ```
 
-### 2. Set up the server
+2. **Environment Setup:**
+   Create a `.env` file in the root directory based on `.env.example`:
+   ```env
+   DATABASE_URL="postgres://user:password@localhost:5432/ai_audit"
+   ```
 
-```bash
-cd server
-cp .env.example .env
-# Fill in your credentials in .env
-npm install
-npx prisma db push        # sync schema to Neon
-npm run dev               # starts on http://localhost:3001
-```
+3. **Run the database migrations:**
+   ```bash
+   npx prisma db push
+   ```
 
-### 3. Set up the client
-
-```bash
-cd ../client
-cp .env.example .env.local
-# Set NEXT_PUBLIC_API_URL=http://localhost:3001
-npm install
-npm run dev               # starts on http://localhost:3000
-```
-
-### 4. Run tests
-
-```bash
-cd server
-npm test                  # 9 audit engine tests, all should pass
-```
+4. **Start the development servers:**
+   ```bash
+   npm run dev
+   ```
+   *The client will run on `http://localhost:3000` and the server on `http://localhost:3001`.*
 
 ### Deploy
 
-| Service | What |
-|---------|------|
-| [Render](https://render.com) | Deploy `server/` as a Node.js web service |
-| [Vercel](https://vercel.com) | Deploy `client/` — set `NEXT_PUBLIC_API_URL` to your Render URL |
+1. **Database:** Deploy a serverless Postgres database using Neon.
+2. **Backend:** Deploy the Express API to a platform like Render or Railway.
+3. **Frontend:** Deploy the Next.js client to Vercel, ensuring you set the `NEXT_PUBLIC_API_URL` environment variable to point to your deployed backend.
 
----
+## Decisions & Trade-offs
 
-## Decisions
+1. **Local Storage for Drafts vs. Database Persistence for In-Progress Audits:**
+   *Why:* We chose to persist the audit form state using `localStorage` rather than saving drafts to the backend. This reduces database write load for incomplete funnels, ensures a snappy user experience, and allows users to seamlessly resume their audits without creating an account. The trade-off is that users cannot resume an audit across different devices.
 
-Five meaningful trade-offs made during this build:
+2. **Rule-Based Engine vs. LLM for Spend Analysis:**
+   *Why:* The core overlap and savings logic uses deterministic, hardcoded rules (e.g., `audit.service.ts`) instead of relying solely on an LLM to calculate savings. This guarantees mathematical accuracy, avoids hallucinations on pricing data, and executes instantly. We only use LLMs for generating a high-level summary paragraph. The trade-off is that adding new tools requires manual code updates rather than just prompting an LLM.
 
-**1. Express over Next.js API routes**  
-The audit engine + Prisma v7 + Vitest needed a clean Node.js environment to run tests against without Next.js bundler interference. Separating the API also means it can be versioned independently and reused if we ever add a mobile client. Trade-off: two deployments instead of one.
+3. **Prisma with `adapter-pg` vs. Native Prisma Client:**
+   *Why:* We utilized the `@prisma/adapter-pg` to ensure compatibility with serverless environments (like Vercel Edge Functions or Cloudflare Workers) and Neon Postgres. This modernizes our database access layer for edge-first deployments, trading slightly more initial configuration complexity for much better connection pooling and scaling.
 
-**2. Deterministic audit engine — no AI for calculations**  
-Founders need to trust the numbers. If Gemini said "you could save $340/month," a savvy founder would ask "how?" Using hardcoded rules based on published pricing pages means every recommendation traces to an official source. AI is only used for the summary paragraph, never for the math.
+4. **Monorepo-like Folder Structure vs. True Monorepo (Turborepo):**
+   *Why:* We split the project into `client/` and `server/` folders within a single repository but avoided heavy monorepo tooling like Turborepo or Nx. This keeps the learning curve flat and deployment scripts simple (just pointing Vercel to `/client`). The trade-off is that sharing types between frontend and backend requires manual syncing or basic path mapping rather than a dedicated shared package.
 
-**3. Prisma v7 over v5/v6**  
-v7 is a breaking change (requires `prisma.config.ts`, removes `url` from schema, forces driver adapters). Chose it anyway because Neon's serverless driver adapter is the recommended path for serverless-friendly connection pooling. The extra setup cost upfront pays off in production reliability.
-
-**4. Email capture after results, not before**  
-Every conversion optimization study shows pre-gating kills trust for free tools. We show full value first — all recommendations, all savings numbers, the AI summary — then ask for email. This aligns with the brief and is the right call for a lead-gen product. Trade-off: slightly lower email capture rate vs higher trust.
-
-**5. Honeypot over hCaptcha for abuse protection**  
-hCaptcha adds 100-200ms latency and visually signals "we don't trust you" — terrible UX for a zero-friction free tool. A honeypot field (hidden from real users, filled by bots) combined with server-side rate limiting (10 req/min per IP) is sufficient for MVP volume. Trade-off: sophisticated bots can bypass honeypots; hCaptcha would be added at scale.
+5. **Client-Side Pricing Calculations vs. Backend-Only Validation:**
+   *Why:* We duplicate some pricing constants on the frontend (`client/lib/pricing.ts`) to provide instant, real-time feedback as the user toggles plans and seats, without waiting for network requests. The trade-off is the risk of the client and server pricing logic drifting out of sync. To mitigate this, both source from matching configuration structures.

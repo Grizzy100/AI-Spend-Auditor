@@ -1,43 +1,25 @@
-# TESTS.md
-**AI Spend Auditor**
+# Automated Tests
 
-## Automated Tests Suite
-We use **Vitest** for all server-side logic testing because it provides a fast, native ESM environment which perfectly suits our Prisma v7 setup.
+The AI Spend Auditor utilizes **Vitest** for fast, reliable unit testing. We currently have 9 automated tests specifically covering the business logic and edge cases within the deterministic Audit Engine.
 
-### How to run the tests
+## How to Run the Tests
+
+To run the test suite locally, execute the following command from the root directory or the `server` directory:
+
 ```bash
-cd server
-npm install
-npm test
+npx vitest run server/src/tests/audit.test.ts
 ```
 
-### Test Coverage (9 Tests)
+## Test Coverage
 
-**File:** `server/src/tests/audit.test.ts`
-
-**1. `calculates basic overpay correctly when usage exceeds benchmark`**
-- *Coverage:* Tests the core `overpayDetectionRule`. Ensures that if a user reports spending $2000 on a plan that should cost $1000, the $1000 delta is flagged as a high-confidence saving.
-
-**2. `identifies cursor + copilot overlap`**
-- *Coverage:* Tests `cursorCopilotOverlapRule`. Ensures that if a team uses both Cursor Pro and Copilot Business, the engine recommends keeping the cheaper one (Copilot in this test case) and flags the Cursor cost as recoverable waste.
-
-**3. `recommends pro upgrades instead of team plans for small seats`**
-- *Coverage:* Tests `planDowngradeRule`. Validates that a 2-person team on ChatGPT Team ($30/mo) is recommended to downgrade to ChatGPT Plus ($20/mo), as Team plans usually require 5+ seats to be worth the enterprise features.
-
-**4. `handles windsurf and cursor overlap`**
-- *Coverage:* Tests `cursorWindsurfOverlapRule`. Ensures that having two full AI IDEs is flagged as 100% redundant, recommending the cancellation of the more expensive option.
-
-**5. `calculates optimization score correctly`**
-- *Coverage:* Validates the 0-100 `optimizationScore` math. A perfectly optimal stack should score near 100, while a stack with 50% waste should score significantly lower.
-
-**6. `determines correct benchmark percentile`**
-- *Coverage:* Tests `benchmarkRule`. Compares a 10-person engineering team spending $80/dev against the hardcoded `$70/pp` industry benchmark, ensuring they land in the correct percentile bracket.
-
-**7. `handles missing or zero spend gracefully`**
-- *Coverage:* Edge case test. Ensures the audit engine does not crash or throw NaN errors if a user inputs $0 spend or leaves optional fields blank.
-
-**8. `identifies claude team and chatgpt team overlap`**
-- *Coverage:* Tests `claudeChatGptTeamOverlapRule`. Having both premium LLM team plans is often redundant for general use cases.
-
-**9. `does not flag API usage as overlap with UI subscriptions`**
-- *Coverage:* Tests `apiVsSubscriptionRule`. Ensures that a team paying for OpenAI API *and* ChatGPT Plus is NOT flagged as an overlap, since API usage (production) and UI usage (internal) serve different purposes.
+| File | Test Description | What it Covers |
+| :--- | :--- | :--- |
+| `audit.test.ts` | **Detects ChatGPT Team plan overspending for ≤2 seats** | Ensures the engine flags small teams (under 2 seats) paying for the 'Team' plan, as it is more expensive than buying individual 'Plus' accounts. |
+| `audit.test.ts` | **Calculates total monthly and annual savings correctly** | Validates the core math functions ensuring that `totalMonthlySavings` exactly matches the sum of individual tool savings, and annual savings are computed precisely. |
+| `audit.test.ts` | **Detects Cursor and GitHub Copilot overlap** | Verifies the redundancy rule `ruleOverlapCursorCopilot`. Recommends dropping the more expensive tool when both a dedicated AI IDE and a general autocomplete tool are present. |
+| `audit.test.ts` | **Detects Claude Team and ChatGPT Team overlap** | Verifies the redundancy rule `ruleOverlapClaudeChatGPT`. Prevents companies from paying for duplicate premium chat interfaces for the same team. |
+| `audit.test.ts` | **Generates benchmark data for small coding team** | Ensures that the benchmark percentiles and industry average logic accurately bucket the company size and calculate reasonable comparisons. |
+| `audit.test.ts` | **Generates optimization score between 10 and 100** | Validates the boundary limits of the proprietary `optimizationScore` calculation for a highly unoptimized, bloated stack. |
+| `audit.test.ts` | **Returns high score for an already optimized stack** | Confirms that a lean stack (e.g., a single seat of Cursor Pro) yields an optimization score of 85+ with $0 in recommended savings. |
+| `audit.test.ts` | **Generates a unique shareId for each audit** | Verifies the `generateShareId` utility reliably produces distinct 8-character unique identifiers for sharing report URLs. |
+| `audit.test.ts` | **Detects when user is overpaying versus official market rate** | Confirms the `calcMarketRate` logic accurately flags users who manually input spend amounts vastly exceeding the official vendor list price. |

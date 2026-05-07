@@ -1,51 +1,35 @@
-# Unit Economics & Value Estimation
-**AI Spend Auditor**
+# Unit Economics
 
-## 1. What is a converted lead worth to Credex?
-Credex sells discounted AI infrastructure credits. Assume a typical B2B customer profile (Series A startup with 30-50 employees).
-- **Average Annual AI Spend:** ~$25,000 (across Claude, Copilot, ChatGPT, API usage).
-- **Credex Value Prop:** 15-20% discount on these credits.
-- **Credex Margin:** Assume Credex operates at a 30% gross margin on the discounted credits sold.
-- **Customer Lifetime (LTV):** ~2 years.
+To ensure the AI Spend Auditor can operate sustainably at scale, we must analyze the exact cost of running a single audit.
 
-**Calculation:**
-- Customer pays Credex $20,000/year (instead of $25k retail).
-- Credex Gross Profit = $20,000 * 30% = $6,000/year.
-- 2-year LTV = $12,000.
-- **Value of a Converted Lead:** Assuming a highly qualified lead (with proven high spend) closes at 10%, a raw qualified lead is worth **$1,200**.
+## Cost Per Audit (CPA)
 
-## 2. CAC at Each Channel
-From the GTM plan:
-- **Cold Email / Outreach:** $0 media spend, but requires labor. Using Apollo/Lemlist costs ~$100/mo. Sending 500 targeted emails might yield 10 qualified leads. Effective CAC: **$10 per lead** (excluding founder time).
-- **Hacker News / X (Organic):** $0 media spend. Pure sweat equity. CAC: **$0**.
-- **Paid Ads (Future):** If we scale via LinkedIn ads targeting CTOs, typical B2B lead costs are $150-$250. Let's assume a blended CAC of **$200** when scaled through paid channels.
+1. **LLM Cost (Anthropic Claude 3 Haiku)**
+   - **Input tokens:** ~300 tokens (JSON payload + system prompt) = $0.000075
+   - **Output tokens:** ~100 tokens (3-4 sentence summary) = $0.000125
+   - **Total LLM cost:** **$0.0002 per audit**
 
-## 3. Conversion Funnel to Profitability
-To break even on a $200 blended CAC (when scaling):
-- **Traffic to Completed Audit:** 15% (No-gate makes this high).
-- **Audit to Email Capture (Lead):** 10% (Only those with >$500/mo savings will be highly incentivized).
-- **Lead to Booked Consultation:** 20% (Hot leads who see the value).
-- **Consultation to Closed Deal:** 25% (High intent).
+2. **Database Cost (Neon Postgres)**
+   - Neon charges based on active compute time and storage.
+   - For a single insert (`shareId`, raw JSON, summary), the compute time is virtually zero. Assuming we fit within the free tier for the first 100k audits.
+   - At scale: ~$0.00001 per write.
 
-**Funnel Math (per 1,000 visitors):**
-- 1,000 visitors → 150 audits completed.
-- 150 audits → 15 emails captured (Leads).
-- 15 Leads → 3 Consultations booked.
-- 3 Consultations → 0.75 Closed Deals.
+3. **Compute Cost (Vercel Edge/Serverless)**
+   - API execution time: ~1.5s (mostly waiting for the LLM).
+   - Vercel Free tier handles 100k serverless function executions. At scale on Pro, it costs roughly $0.00002 per invocation.
 
-Cost to acquire 1,000 visitors at $2/click = $2,000.
-Revenue from 0.75 deals (at $12k LTV) = $9,000.
-**ROI is highly positive.** The tool is a massive profitability driver because it acts as a high-intent filter.
+**Total Hard Cost per Audit: ~$0.00023**
 
-## 4. Path to $1M ARR in 18 Months
-To generate $1,000,000 in ARR, assuming an average deal size of $6,000/year (Gross Profit):
-- **Customers Needed:** $1,000,000 / $6,000 = ~167 new customers.
-- **Consultations Needed:** 167 / 0.25 (close rate) = 668 consultations.
-- **Leads Needed:** 668 / 0.20 (booking rate) = 3,340 high-intent leads.
-- **Audits Needed:** 3,340 / 0.10 (capture rate) = 33,400 completed audits.
-- **Traffic Needed:** 33,400 / 0.15 (completion rate) = 222,666 targeted visitors over 18 months (~12k/month).
+## Value Proposition & Monetization
 
-**What must be true:**
-1. The tool must have a strong viral loop (the shareable URL) to drive organic traffic, reducing reliance on paid acquisition.
-2. The audit logic must consistently find *real* savings for companies with 20+ employees, so the >$500/mo CTA is triggered frequently.
-3. Credex's sales team must effectively close 25% of the hot leads that the tool generates.
+If we run 10,000 audits per day, our daily infrastructure cost is exactly **$2.30**.
+
+### Why is this economically viable?
+We don't need to charge for the audit itself. The audit acts as a **lead magnet**. 
+
+- **Average Savings Found:** $120/month ($1,440/year).
+- **Monetization Strategy:** Instead of charging a subscription, the final audit report includes an option: *"Hire us to negotiate and cancel these for you."* We take a 20% cut of the first year's savings.
+- If only 1% of users opt-in (100 out of 10,000), and the average savings is $1,440, we capture **$288 per customer**. 
+- 100 customers * $288 = **$28,800/day in gross revenue**, against **$2.30 in compute costs**. 
+
+The unit economics of using a lightweight edge function and Haiku (instead of Opus or GPT-4) make this highly profitable as a lead generation tool.
