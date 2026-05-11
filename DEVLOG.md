@@ -13,3 +13,10 @@
 **What I learned:** CI/CD caching behaviors change significantly in monorepo-style folders without a root lockfile. Also, thoroughly documenting decisions and unit economics takes almost as much mental effort as writing the code, but the product feels much more professional. Writing tests for deterministic logic is incredibly satisfying.
 **Blockers / what I'm stuck on:** None. The project is ready for submission!
 **Plan for tomorrow:** Rest.
+
+## Day 3 — 2026-05-11
+**Hours worked:** 2
+**What I did:** Refactored the landing page to extract monolithic UI sections (`Navbar`, `Hero`, `CTA`, `Footer`) into reusable components. Improved the codebase modularity and maintainability.
+**What I learned:** Breaking down large Next.js pages into smaller components keeps the main page clean and makes future styling updates much easier. Next.js HMR sometimes throws "Router action dispatched before initialization" errors when moving components, but a simple restart clears it.
+**Blockers / what I'm stuck on:** None.
+**Plan for tomorrow:** Final manual review and complete submission.

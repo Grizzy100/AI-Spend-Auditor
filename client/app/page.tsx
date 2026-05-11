@@ -1,10 +1,14 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import { Navbar } from '../components/Navbar';
+import { Hero } from '../components/Hero';
+import { CTA } from '../components/CTA';
+import { Footer } from '../components/Footer';
 
 export const metadata: Metadata = {
-  title: 'AI Spend Auditor — Stop Overpaying for AI Tools',
+  title: 'Auditly — Cut Your AI Spend Without Guesswork',
   description:
-    'Find hidden waste in your AI subscriptions in 2 minutes. Get a personalized audit showing exactly where you can cut costs and save thousands per year.',
+    'Analyze ChatGPT, Claude, Cursor, Copilot, and API costs. Get actionable savings recommendations instantly — no signup required.',
 };
 
 const STATS = [
@@ -65,145 +69,10 @@ export default function LandingPage() {
   return (
     <main className="min-h-screen" style={{ background: 'var(--background)' }}>
       {/* Nav */}
-      <nav
-        aria-label="Main navigation"
-        style={{
-          borderBottom: '1px solid var(--border)',
-          background: 'rgba(10,10,15,0.8)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-        }}
-        className="fixed top-0 left-0 right-0 z-50"
-      >
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div
-              aria-hidden="true"
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold"
-              style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
-            >
-              A
-            </div>
-            <span className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
-              AI Spend Auditor
-            </span>
-            <span
-              className="text-xs px-2 py-0.5 rounded-full"
-              style={{
-                background: 'rgba(99,102,241,0.15)',
-                color: '#a5b4fc',
-                border: '1px solid rgba(99,102,241,0.3)',
-              }}
-            >
-              by Credex
-            </span>
-          </div>
-          <Link
-            href="/audit"
-            className="text-sm font-semibold px-4 py-2 rounded-lg transition-all"
-            style={{
-              background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-              color: '#fff',
-            }}
-          >
-            Start free audit →
-          </Link>
-        </div>
-      </nav>
+      <Navbar />
 
       {/* Hero */}
-      <section
-        className="pt-32 pb-24 px-4 sm:px-6 text-center relative overflow-hidden"
-        aria-label="Hero section"
-        style={{
-          background: `
-            radial-gradient(ellipse at 20% 50%, rgba(99,102,241,0.08) 0%, transparent 60%),
-            radial-gradient(ellipse at 80% 20%, rgba(139,92,246,0.06) 0%, transparent 60%),
-            radial-gradient(ellipse at 50% 100%, rgba(16,185,129,0.04) 0%, transparent 50%)
-          `,
-        }}
-      >
-        <div className="max-w-4xl mx-auto relative z-10">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 mb-6">
-            <div
-              className="px-3 py-1 rounded-full text-xs font-medium"
-              style={{
-                background: 'rgba(16,185,129,0.1)',
-                color: '#34d399',
-                border: '1px solid rgba(16,185,129,0.2)',
-              }}
-            >
-              ✦ Free AI spend analysis
-            </div>
-          </div>
-
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-6">
-            <span style={{ color: 'var(--text-primary)' }}>Stop overpaying</span>
-            <br />
-            <span
-              style={{
-                background: 'linear-gradient(135deg, #6366f1, #8b5cf6, #a78bfa)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-              }}
-            >
-              for AI tools
-            </span>
-          </h1>
-
-          <p
-            className="text-lg sm:text-xl max-w-2xl mx-auto mb-10 leading-relaxed"
-            style={{ color: 'var(--text-secondary)' }}
-          >
-            In 2 minutes, discover exactly where your startup is wasting money on AI
-            subscriptions — and get specific, defensible recommendations to fix it.
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-3 justify-center items-center mb-16">
-            <Link
-              href="/audit"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl font-semibold text-base transition-all hover:opacity-90 active:scale-95"
-              style={{
-                background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                color: '#fff',
-                boxShadow: '0 0 40px rgba(99,102,241,0.3)',
-              }}
-            >
-              Audit my AI spend
-              <span aria-hidden="true">→</span>
-            </Link>
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-              No signup required
-            </p>
-          </div>
-
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto">
-            {STATS.map((stat) => (
-              <div
-                key={stat.label}
-                className="p-4 rounded-xl"
-                style={{
-                  background: 'rgba(17,17,24,0.8)',
-                  border: '1px solid var(--border)',
-                }}
-              >
-                <div
-                  className="text-2xl sm:text-3xl font-bold mb-1"
-                  style={{ color: 'var(--text-primary)' }}
-                >
-                  {stat.value}
-                </div>
-                <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                  {stat.label}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <Hero />
 
       {/* Tools Marquee */}
       <section
@@ -288,10 +157,11 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* What we check */}
+      {/* Audit Logic (formerly What we analyze) */}
       <section
+        id="audit-logic"
         className="py-24 px-4 sm:px-6"
-        aria-label="What we analyze"
+        aria-label="Audit logic"
         style={{ background: 'var(--surface)' }}
       >
         <div className="max-w-5xl mx-auto">
@@ -300,7 +170,7 @@ export default function LandingPage() {
               className="text-3xl sm:text-4xl font-bold mb-4"
               style={{ color: 'var(--text-primary)' }}
             >
-              What we analyze
+              Audit Logic
             </h2>
             <p style={{ color: 'var(--text-secondary)' }}>
               Every insight is backed by official pricing data.
@@ -372,49 +242,10 @@ export default function LandingPage() {
       </section>
 
       {/* CTA */}
-      <section
-        className="py-24 px-4 sm:px-6 text-center"
-        aria-label="Call to action"
-        style={{
-          borderTop: '1px solid var(--border)',
-          background: `radial-gradient(ellipse at 50% 0%, rgba(99,102,241,0.1) 0%, transparent 60%)`,
-        }}
-      >
-        <div className="max-w-2xl mx-auto">
-          <h2
-            className="text-3xl sm:text-4xl font-bold mb-4"
-            style={{ color: 'var(--text-primary)' }}
-          >
-            Find your savings in 2 minutes
-          </h2>
-          <p className="mb-8" style={{ color: 'var(--text-secondary)' }}>
-            No account. No credit card. Just your audit results.
-          </p>
-          <Link
-            href="/audit"
-            className="inline-flex items-center gap-2 px-10 py-4 rounded-xl font-semibold text-lg transition-all hover:opacity-90 active:scale-95"
-            style={{
-              background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-              color: '#fff',
-              boxShadow: '0 0 60px rgba(99,102,241,0.25)',
-            }}
-          >
-            Audit my AI spend →
-          </Link>
-        </div>
-      </section>
+      <CTA />
 
       {/* Footer */}
-      <footer
-        className="py-8 px-4 sm:px-6 text-center"
-        style={{ borderTop: '1px solid var(--border)' }}
-        role="contentinfo"
-      >
-        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-          © {new Date().getFullYear()} Credex · AI Spend Auditor ·{' '}
-          <span>Pricing verified May 2026</span>
-        </p>
-      </footer>
+      <Footer />
     </main>
   );
 }
